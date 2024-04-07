@@ -260,15 +260,17 @@ function playVideo(src, title) {
     currentListItem.classList.remove('highlight');
   }
   var playlistItems = document.querySelectorAll('.playlist-item');
-  playlistItems.forEach(function(item) {
+  playlistItems.forEach(function(item, index) {
     if (item.textContent === title) {
       item.classList.add('highlight');
-      item.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" }); // Scroll to the highlighted item
+      currentVideoIndex = index; // Update the currentVideoIndex
+      item.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
     }
   });
   document.getElementById('nowPlaying').innerHTML = "Now playing: " + title;
   document.getElementById('sourceText').innerHTML = src;
 }
+
 
   function toggleRepeat() {
     repeatState = !repeatState;
