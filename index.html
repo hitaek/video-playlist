@@ -146,9 +146,13 @@
     </div>
     <div id="nowPlaying" style="padding: 10px 0;"></div>
     <div id="sourceText"></div>
+  <div id="playlistDownload">
+    <a href="#" id="downloadPlaylistLink" download="playlist.m3u">Download Playlist</a>
+  </div>
     <ul class="playlist" id="playlist">
       <!-- Playlist items will be dynamically added here -->
     </ul>
+
   </div>
 </div>
 
@@ -175,46 +179,233 @@
 </div>
 
 <script>
-  var player = document.getElementById('my-video');
-  var playlist = document.getElementById('playlist');
-  var repeatButton = document.getElementById('repeat');
-  var shuffleButton = document.getElementById('shuffle');
-  var filterInput = document.getElementById('filterInput');
-  var currentPlaylist = [];
-  var currentVideoIndex = 0;
-  var repeatState = false;
-  var shuffleState = false;
+var player = document.getElementById('my-video');
+var playlist = document.getElementById('playlist');
+var repeatButton = document.getElementById('repeat');
+var shuffleButton = document.getElementById('shuffle');
+var filterInput = document.getElementById('filterInput');
+var currentPlaylist = [];
+var currentVideoIndex = 0;
+var repeatState = false;
+var shuffleState = false;
 
-  function createPlaylist(playlistData) {
-    clearPlaylist();
-    playlistData.forEach(function(item) {
-      var listItem = document.createElement('li');
-      listItem.textContent = item.title;
-      listItem.classList.add('playlist-item');
-      listItem.onclick = function() {
-        playVideo(item.url, item.title);
-      };
-      playlist.appendChild(listItem);
-      currentPlaylist.push(item);
-    });
-    if (currentPlaylist.length > 0) {
+function createPlaylist(playlistData) {
+  clearPlaylist();
+  playlistData.forEach(function(item) {
+    var listItem = document.createElement('li');
+    listItem.textContent = item.title;
+    listItem.classList.add('playlist-item');
+    listItem.onclick = function() {
+      playVideo(item.url, item.title);
+      currentVideoIndex = currentPlaylist.indexOf(item); // Update current video index
+    };
+    playlist.appendChild(listItem);
+    currentPlaylist.push(item);
+  });
+  generateM3U(); // Generate M3U when playlist is created or updated
+}
+
+function clearPlaylist() {
+  playlist.innerHTML = '';
+  currentPlaylist = [];
+}
+
+function handlePlaylistInput(action) {
+  var fileInput = document.getElementById('fileInput');
+  if (fileInput.files.length > 0) {
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var lines = e.target.result.split(/\r?\n/);
+      var playlistData = [];
+      lines.forEach(function(line) {
+        if (line.startsWith('#EXTINF')) {
+          var url = lines[lines.indexOf(line) + 1];
+          if (url && url.trim() !== '') {
+            var title = line.split(',')[1];
+            playlistData.push({ url: url, title: title });
+          }
+        }
+      });
+      if (action === 'create') {
+        createPlaylist(playlistData);
+      } else if (action === 'upload') {
+        var confirmMsg = currentPlaylist.length > 0 ? 'Would you like to clear the playlist or append?' : 'The playlist will be replaced with the new items. Continue?';
+        var response = confirm(confirmMsg);
+        if (response) {
+          createPlaylist(playlistData);
+        } else {
+          playlistData.forEach(function(item) {
+            var listItem = document.createElement('li');
+            listItem.textContent = item.title;
+            listItem.classList.add('playlist-item');
+            listItem.onclick = function() {
+              playVideo(item.url, item.title);
+              currentVideoIndex = currentPlaylist.indexOf(item); // Update current video index
+            };
+            playlist.appendChild(listItem);
+            currentPlaylist.push(item);
+          });
+          generateM3U(); // Generate M3U when playlist is created or updated
+        }
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    alert('Please select a file to upload.');
+  }
+}
+
+function playVideo(src, title) {
+  player.src = src;
+  player.play();
+  var currentListItem = document.querySelector('.playlist-item.highlight');
+  if (currentListItem) {
+    currentListItem.classList.remove('highlight');
+  }
+  var playlistItems = document.querySelectorAll('.playlist-item');
+  playlistItems.forEach(function(item) {
+    if (item.textContent === title) {
+      item.classList.add('highlight');
+      item.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    }
+  });
+  document.getElementById('nowPlaying').innerHTML = "Now playing: " + title;
+  document.getElementById('sourceText').innerHTML = src;
+}
+
+function toggleRepeat() {
+  repeatState = !repeatState;
+  repeatButton.textContent = repeatState ? 'Repeat: ON' : 'Repeat: OFF';
+  player.loop = repeatState;
+}
+
+function toggleShuffle() {
+  shuffleState = !shuffleState;
+  shuffleButton.textContent = shuffleState ? 'Shuffle: ON' : 'Shuffle: OFF';
+  if (shuffleState) {
+    shuffleArray(currentPlaylist);
+    currentVideoIndex = 0;
+    playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
+  }
+}
+
+function shuffleArray(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function playNext() {
+  currentVideoIndex++;
+  if (currentVideoIndex >= currentPlaylist.length) {
+    if (repeatState) {
       currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
+    } else {
+      return;
     }
   }
+  playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
+}
 
-  function clearPlaylist() {
-    playlist.innerHTML = '';
-    currentPlaylist = [];
+function playPrevious() {
+  currentVideoIndex--;
+  if (currentVideoIndex < 0) {
+    currentVideoIndex = currentPlaylist.length - 1;
   }
+  playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
+}
 
-  function handlePlaylistInput(action) {
-    var fileInput = document.getElementById('fileInput');
-    if (fileInput.files.length > 0) {
-      var file = fileInput.files[0];
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var lines = e.target.result.split(/\r?\n/);
+function skipForward() {
+  player.currentTime += 10;
+}
+
+function skipBackward() {
+  player.currentTime -= 10;
+}
+
+function filterPlaylist() {
+  var filterValue = filterInput.value.toLowerCase();
+  if (filterValue === "") {
+    // If filter is empty, show all playlist items
+    var playlistItems = playlist.getElementsByClassName('playlist-item');
+    for (var i = 0; i < playlistItems.length; i++) {
+      playlistItems[i].style.display = '';
+    }
+    return;
+  }
+  var years = filterValue.split("-");
+  var startYear = parseInt(years[0]);
+  var endYear = parseInt(years[1]);
+  var playlistItems = playlist.getElementsByClassName('playlist-item');
+  for (var i = 0; i < playlistItems.length; i++) {
+    var title = playlistItems[i].textContent.toLowerCase();
+    var yearMatches = title.match(/\d{4}/g);
+    if (yearMatches) {
+      for (var j = 0; j < yearMatches.length; j++) {
+        var year = parseInt(yearMatches[j]);
+        if (year >= startYear && year <= endYear) {
+          playlistItems[i].style.display = '';
+          break;
+        } else {
+          playlistItems[i].style.display = 'none';
+        }
+      }
+    } else {
+      playlistItems[i].style.display = 'none';
+    }
+  }
+}
+
+filterInput.addEventListener('input', function() {
+  filterPlaylist();
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', function(event) {
+  if (filterInput === document.activeElement) {
+    return; // Ignore keyboard shortcuts when filter input is focused
+  }
+  switch (event.key) {
+    case ' ':
+      if (player.paused) {
+        player.play();
+      } else {
+        player.pause();
+      }
+      break;
+    case 'ArrowLeft':
+      playPrevious();
+      break;
+    case 'ArrowRight':
+      playNext();
+      break;
+    case 'ArrowUp':
+      player.currentTime += 10;
+      break;
+    case 'ArrowDown':
+      player.currentTime -= 10;
+      break;
+    case 'r':
+    case 'R':
+      toggleRepeat();
+      break;
+    case 's':
+    case 'S':
+      toggleShuffle();
+      break;
+  }
+});
+
+// Automatically load playlist from "MisterRogers-MP4.m3u8" file
+window.onload = function() {
+  var file = "MisterRogers-MP4.m3u8";
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == XMLHttpRequest.DONE) {
+      if (xhr.status == 200) {
+        var lines = xhr.responseText.split(/\r?\n/);
         var playlistData = [];
         lines.forEach(function(line) {
           if (line.startsWith('#EXTINF')) {
@@ -225,177 +416,28 @@
             }
           }
         });
-        if (action === 'create') {
-          createPlaylist(playlistData);
-        } else if (action === 'upload') {
-          var confirmMsg = currentPlaylist.length > 0 ? 'Would you like to clear the playlist or append?' : 'The playlist will be replaced with the new items. Continue?';
-          var response = confirm(confirmMsg);
-          if (response) {
-            createPlaylist(playlistData);
-          } else {
-            playlistData.forEach(function(item) {
-              var listItem = document.createElement('li');
-              listItem.textContent = item.title;
-              listItem.classList.add('playlist-item');
-              listItem.onclick = function() {
-                playVideo(item.url, item.title);
-              };
-              playlist.appendChild(listItem);
-              currentPlaylist.push(item);
-            });
-          }
-        }
-      };
-      reader.readAsText(file);
-    } else {
-      alert('Please select a file to upload.');
+        createPlaylist(playlistData);
+      } else {
+        console.error("Failed to load playlist.");
+      }
     }
-  }
+  };
+  xhr.open("GET", file, true);
+  xhr.send();
+};
 
-function playVideo(src, title) {
-  player.src = src;
-  player.play();
-  var currentListItem = document.querySelector('.playlist-item.highlight');
-  if (currentListItem) {
-    currentListItem.classList.remove('highlight');
-  }
-  var playlistItems = document.querySelectorAll('.playlist-item');
-  playlistItems.forEach(function(item, index) {
-    if (item.textContent === title) {
-      item.classList.add('highlight');
-      currentVideoIndex = index; // Update the currentVideoIndex
-      item.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-    }
+function generateM3U() {
+  var m3uContent = "#EXTM3U\n";
+  currentPlaylist.forEach(function(item) {
+    m3uContent += "#EXTINF:-1," + item.title + "\n" + item.url + "\n";
   });
-  document.getElementById('nowPlaying').innerHTML = "Now playing: " + title;
-  document.getElementById('sourceText').innerHTML = src;
+  var blob = new Blob([m3uContent], { type: "text/plain" });
+  var url = window.URL.createObjectURL(blob);
+  var downloadLink = document.getElementById('downloadPlaylistLink');
+  downloadLink.href = url;
 }
 
 
-  function toggleRepeat() {
-    repeatState = !repeatState;
-    repeatButton.textContent = repeatState ? 'Repeat: ON' : 'Repeat: OFF';
-    player.loop = repeatState;
-  }
-
-  function toggleShuffle() {
-    shuffleState = !shuffleState;
-    shuffleButton.textContent = shuffleState ? 'Shuffle: ON' : 'Shuffle: OFF';
-    if (shuffleState) {
-      shuffleArray(currentPlaylist);
-      currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
-    }
-  }
-
-  function shuffleArray(array) {
-    for (var i = array.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  }
-
-  function playNext() {
-    currentVideoIndex++;
-    if (currentVideoIndex >= currentPlaylist.length) {
-      if (repeatState) {
-        currentVideoIndex = 0;
-      } else {
-        return;
-      }
-    }
-    playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
-  }
-
-  function playPrevious() {
-    currentVideoIndex--;
-    if (currentVideoIndex < 0) {
-      currentVideoIndex = currentPlaylist.length - 1;
-    }
-    playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
-  }
-
-  function skipForward() {
-    player.currentTime += 10;
-  }
-
-  function skipBackward() {
-    player.currentTime -= 10;
-  }
-
-  function filterPlaylist() {
-    var filterValue = filterInput.value.toLowerCase();
-    var playlistItems = playlist.getElementsByClassName('playlist-item');
-    for (var i = 0; i < playlistItems.length; i++) {
-      var title = playlistItems[i].textContent.toLowerCase();
-      if (title.indexOf(filterValue) > -1) {
-        playlistItems[i].style.display = '';
-      } else {
-        playlistItems[i].style.display = 'none';
-      }
-    }
-  }
-
-  // Keyboard navigation
-  document.addEventListener('keydown', function(event) {
-    switch (event.key) {
-      case ' ':
-        if (player.paused) {
-          player.play();
-        } else {
-          player.pause();
-        }
-        break;
-      case 'ArrowLeft':
-        playPrevious();
-        break;
-      case 'ArrowRight':
-        playNext();
-        break;
-      case 'ArrowUp':
-        player.currentTime += 10;
-        break;
-      case 'ArrowDown':
-        player.currentTime -= 10;
-        break;
-      case 'r':
-      case 'R':
-        toggleRepeat();
-        break;
-      case 's':
-      case 'S':
-        toggleShuffle();
-        break;
-    }
-  });
-
-  // Automatically load playlist from "MisterRogers-MP4.m3u8" file
-  window.onload = function() {
-    var file = "MisterRogers-MP4.m3u8";
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == XMLHttpRequest.DONE) {
-        if (xhr.status == 200) {
-          var lines = xhr.responseText.split(/\r?\n/);
-          var playlistData = [];
-          lines.forEach(function(line) {
-            if (line.startsWith('#EXTINF')) {
-              var url = lines[lines.indexOf(line) + 1];
-              if (url && url.trim() !== '') {
-                var title = line.split(',')[1];
-                playlistData.push({ url: url, title: title });
-              }
-            }
-          });
-          createPlaylist(playlistData);
-        } else {
-          console.error("Failed to load playlist.");
-        }
-      }
-    };
-    xhr.open("GET", file, true);
-    xhr.send();
-  };
 </script>
 
 </body>
