@@ -58,6 +58,12 @@
     .playlist-input:focus {
       border-color: #007bff;
     }
+    .button-container {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-gap: 5px;
+    }
     button, .upload-btn {
       background-color: #eee;
       color: #555;
@@ -66,7 +72,6 @@
       cursor: pointer;
       transition: background-color 0.3s ease, color 0.3s ease;
       padding: 10px;
-      width: calc(50% - 5px);
       font-size: 16px;
     }
     button:hover, .upload-btn:hover {
@@ -90,12 +95,6 @@
     .shortcut-list li {
       margin-bottom: 5px;
     }
-    .button-container {
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-    }
 
     @media only screen and (min-width: 768px) {
       .container {
@@ -108,10 +107,7 @@
         width: 100%;
       }
       .button-container {
-        flex-direction: row;
-      }
-      button, .upload-btn {
-        width: auto;
+        grid-template-columns: repeat(2, auto);
       }
     }
   </style>
@@ -128,14 +124,14 @@
 
   <div class="playlist-container">
     <h2 style="padding: 10px 0; margin: 0; border-bottom: 1px solid #ccc;">Playlist</h2>
-    <div class="nav-buttons">
-      <button onclick="playPrevious()">Previous</button>
-      <button onclick="playNext()">Next</button>
-    </div>
     <input type="text" id="filterInput" onkeyup="filterPlaylist()" placeholder="Filter playlist..." class="playlist-input">
     <div class="playlist-controls" style="padding: 10px 0;">
-      <button id="repeat" onclick="toggleRepeat()">Repeat: OFF</button>
-      <button id="shuffle" onclick="toggleShuffle()">Shuffle: OFF</button>
+      <div class="button-container">
+        <button id="repeat" onclick="toggleRepeat()">Repeat: OFF</button>
+        <button id="shuffle" onclick="toggleShuffle()">Shuffle: OFF</button>
+        <button onclick="playPrevious()">Previous</button>
+        <button onclick="playNext()">Next</button>
+      </div>
     </div>
     <ul class="playlist" id="playlist">
       <!-- Playlist items will be dynamically added here -->
@@ -321,41 +317,4 @@
 
   // Automatically load playlist from "MisterRogers-MP4.m3u8" file
   window.onload = function() {
-    var file = "MisterRogers-MP4.m3u8";
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == XMLHttpRequest.DONE) {
-        if (xhr.status == 200) {
-          var lines = xhr.responseText.split(/\r?\n/);
-          lines.forEach(function(line) {
-            if (line.startsWith('#EXTINF')) {
-              var url = lines[lines.indexOf(line) + 1];
-              if (url && url.trim() !== '') {
-                var title = line.split(',')[1];
-                var listItem = document.createElement('li');
-                listItem.textContent = title;
-                listItem.classList.add('playlist-item');
-                listItem.onclick = function() {
-                  playVideo(url);
-                };
-                playlist.appendChild(listItem);
-                currentPlaylist.push({ url: url, title: title });
-              }
-            }
-          });
-          if (currentPlaylist.length > 0) {
-            currentVideoIndex = 0;
-            playVideo(currentPlaylist[currentVideoIndex].url);
-          }
-        } else {
-          console.error("Failed to load playlist.");
-        }
-      }
-    };
-    xhr.open("GET", file, true);
-    xhr.send();
-  };
-</script>
-
-</body>
-</html>
+    var file = "MisterRog
