@@ -318,4 +318,41 @@
 
   // Automatically load playlist from "MisterRogers-MP4.m3u8" file
   window.onload = function() {
-    var file = "MisterRog
+    var file = "MisterRogers-MP4.m3u8";
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState == XMLHttpRequest.DONE) {
+        if (xhr.status == 200) {
+          var lines = xhr.responseText.split(/\r?\n/);
+          lines.forEach(function(line) {
+            if (line.startsWith('#EXTINF')) {
+              var url = lines[lines.indexOf(line) + 1];
+              if (url && url.trim() !== '') {
+                var title = line.split(',')[1];
+                var listItem = document.createElement('li');
+                listItem.textContent = title;
+                listItem.classList.add('playlist-item');
+                listItem.onclick = function() {
+                  playVideo(url);
+                };
+                playlist.appendChild(listItem);
+                currentPlaylist.push({ url: url, title: title });
+              }
+            }
+          });
+          if (currentPlaylist.length > 0) {
+            currentVideoIndex = 0;
+            playVideo(currentPlaylist[currentVideoIndex].url);
+          }
+        } else {
+          console.error("Failed to load playlist.");
+        }
+      }
+    };
+    xhr.open("GET", file, true);
+    xhr.send();
+  };
+</script>
+
+</body>
+</html>
