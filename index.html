@@ -29,18 +29,20 @@
     .playlist {
       list-style: none;
       padding: 0;
-      max-height: 400px;
+      max-height: 300px;
       overflow-y: auto;
       padding: 10px;
     }
     .playlist-item {
-      margin-bottom: 5px;
+      margin-bottom: 1px;
       cursor: pointer;
-      padding: 8px;
-      border-radius: 4px;
-      background-color: #f0f0f0;
+      padding: 2px; /* Increased padding */
+      border-radius: 0; /* Removed border-radius */
+      background-color: transparent; /* Removed background color */
       transition: background-color 0.3s ease;
+      font-size: 12px; /* Adjust the font size as needed */
     }
+
     .playlist-item:hover {
       background-color: #e0e0e0;
     }
@@ -61,7 +63,8 @@
     .button-container {
       width: 100%;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr); /* Updated to 3 columns */
+      grid-template-rows: repeat(2, 1fr); /* Updated to 2 rows */
       grid-gap: 5px;
     }
     button, .upload-btn {
@@ -108,7 +111,8 @@
         width: 100%;
       }
       .button-container {
-        grid-template-columns: repeat(2, auto);
+        grid-template-columns: repeat(2, 1fr); /* Updated to 2 columns */
+        grid-template-rows: repeat(3, 1fr); /* Updated to 3 rows */
       }
     }
     .highlight {
@@ -136,8 +140,12 @@
         <button id="shuffle" onclick="toggleShuffle()">Shuffle: OFF</button>
         <button onclick="playPrevious()">Previous</button>
         <button onclick="playNext()">Next</button>
+        <button onclick="skipBackward()">Skip Backward</button> <!-- Added Skip Backward button -->
+        <button onclick="skipForward()">Skip Forward</button> <!-- Added Skip Forward button -->
       </div>
     </div>
+    <div id="nowPlaying" style="padding: 10px 0;"></div>
+    <div id="sourceText"></div>
     <ul class="playlist" id="playlist">
       <!-- Playlist items will be dynamically added here -->
     </ul>
@@ -184,14 +192,14 @@
       listItem.textContent = item.title;
       listItem.classList.add('playlist-item');
       listItem.onclick = function() {
-        playVideo(item.url);
+        playVideo(item.url, item.title);
       };
       playlist.appendChild(listItem);
       currentPlaylist.push(item);
     });
     if (currentPlaylist.length > 0) {
       currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url);
+      playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
     }
   }
 
@@ -230,7 +238,7 @@
               listItem.textContent = item.title;
               listItem.classList.add('playlist-item');
               listItem.onclick = function() {
-                playVideo(item.url);
+                playVideo(item.url, item.title);
               };
               playlist.appendChild(listItem);
               currentPlaylist.push(item);
@@ -244,21 +252,23 @@
     }
   }
 
-  function playVideo(src) {
-    player.src = src;
-    player.play();
-    var currentListItem = document.querySelector('.playlist-item.highlight');
-    if (currentListItem) {
-      currentListItem.classList.remove('highlight');
-    }
-    var playlistItems = document.querySelectorAll('.playlist-item');
-    playlistItems.forEach(function(item) {
-      if (item.textContent === src) {
-        item.classList.add('highlight');
-        item.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
-      }
-    });
+function playVideo(src, title) {
+  player.src = src;
+  player.play();
+  var currentListItem = document.querySelector('.playlist-item.highlight');
+  if (currentListItem) {
+    currentListItem.classList.remove('highlight');
   }
+  var playlistItems = document.querySelectorAll('.playlist-item');
+  playlistItems.forEach(function(item) {
+    if (item.textContent === title) {
+      item.classList.add('highlight');
+      item.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" }); // Scroll to the highlighted item
+    }
+  });
+  document.getElementById('nowPlaying').innerHTML = "Now playing: " + title;
+  document.getElementById('sourceText').innerHTML = src;
+}
 
   function toggleRepeat() {
     repeatState = !repeatState;
@@ -272,7 +282,7 @@
     if (shuffleState) {
       shuffleArray(currentPlaylist);
       currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url);
+      playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
     }
   }
 
@@ -292,7 +302,7 @@
         return;
       }
     }
-    playVideo(currentPlaylist[currentVideoIndex].url);
+    playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
   }
 
   function playPrevious() {
@@ -300,7 +310,15 @@
     if (currentVideoIndex < 0) {
       currentVideoIndex = currentPlaylist.length - 1;
     }
-    playVideo(currentPlaylist[currentVideoIndex].url);
+    playVideo(currentPlaylist[currentVideoIndex].url, currentPlaylist[currentVideoIndex].title);
+  }
+
+  function skipForward() {
+    player.currentTime += 10;
+  }
+
+  function skipBackward() {
+    player.currentTime -= 10;
   }
 
   function filterPlaylist() {
