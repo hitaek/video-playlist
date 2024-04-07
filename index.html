@@ -111,10 +111,6 @@
         grid-template-columns: repeat(2, auto);
       }
     }
-    .highlight {
-      background-color: #007bff;
-      color: #fff;
-    }
   </style>
 </head>
 <body>
@@ -147,8 +143,8 @@
 <div class="input-container">
   <textarea id="videoInput" class="playlist-input" placeholder="Enter video URLs and titles in CSV format"></textarea>
   <div class="button-container">
-    <button onclick="handlePlaylistInput('create')">Create Playlist</button>
-    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="handlePlaylistInput('upload')">
+    <button onclick="createPlaylist()">Create Playlist</button>
+    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="uploadAndParse()">
     <label for="fileInput" class="upload-btn">Upload Local M3U/M3U8</label>
   </div>
 </div>
@@ -159,8 +155,8 @@
     <li>Space: Play/Pause</li>
     <li>Left Arrow: Previous Video</li>
     <li>Right Arrow: Next Video</li>
-    <li>Up Arrow: Skip Ahead 10 seconds</li>
-    <li>Down Arrow: Skip Back 10 seconds</li>
+    <li>Up Arrow: Skip Forward 10 seconds</li>
+    <li>Down Arrow: Skip Backward 10 seconds</li>
     <li>R: Toggle Repeat</li>
     <li>S: Toggle Shuffle</li>
   </ul>
@@ -176,10 +172,15 @@
   var currentVideoIndex = 0;
   var repeatState = false;
   var shuffleState = false;
+  var playingItem = null;
 
-  function createPlaylist(playlistData) {
-    clearPlaylist();
-    playlistData.forEach(function(item) {
+  function createPlaylist(data) {
+    var shouldClear = currentPlaylist.length > 0 && confirm("There are items in the playlist. Do you want to clear the list?");
+    if (shouldClear) {
+      currentPlaylist = [];
+      playlist.innerHTML = '';
+    }
+    data.forEach(function(item) {
       var listItem = document.createElement('li');
       listItem.textContent = item.title;
       listItem.classList.add('playlist-item');
@@ -189,18 +190,13 @@
       playlist.appendChild(listItem);
       currentPlaylist.push(item);
     });
-    if (currentPlaylist.length > 0) {
-      currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url);
+    if (!shouldClear && currentPlaylist.length > 0) {
+      currentVideoIndex = currentPlaylist.length - 1;
+      playNext();
     }
   }
 
-  function clearPlaylist() {
-    playlist.innerHTML = '';
-    currentPlaylist = [];
-  }
-
-  function handlePlaylistInput(action) {
+  function uploadAndParse() {
     var fileInput = document.getElementById('fileInput');
     if (fileInput.files.length > 0) {
       var file = fileInput.files[0];
@@ -217,26 +213,7 @@
             }
           }
         });
-        if (action === 'create') {
-          createPlaylist(playlistData);
-        } else if (action === 'upload') {
-          var confirmMsg = currentPlaylist.length > 0 ? 'Would you like to clear the playlist or append?' : 'The playlist will be replaced with the new items. Continue?';
-          var response = confirm(confirmMsg);
-          if (response) {
-            createPlaylist(playlistData);
-          } else {
-            playlistData.forEach(function(item) {
-              var listItem = document.createElement('li');
-              listItem.textContent = item.title;
-              listItem.classList.add('playlist-item');
-              listItem.onclick = function() {
-                playVideo(item.url);
-              };
-              playlist.appendChild(listItem);
-              currentPlaylist.push(item);
-            });
-          }
-        }
+        createPlaylist(playlistData);
       };
       reader.readAsText(file);
     } else {
@@ -245,19 +222,19 @@
   }
 
   function playVideo(src) {
+    if (playingItem) {
+      playingItem.classList.remove('playing');
+    }
+    var playlistItems = playlist.getElementsByClassName('playlist-item');
+    for (var i = 0; i < playlistItems.length; i++) {
+      if (playlistItems[i].textContent === src) {
+        playingItem = playlistItems[i];
+        playingItem.classList.add('playing');
+        break;
+      }
+    }
     player.src = src;
     player.play();
-    var currentListItem = document.querySelector('.playlist-item.highlight');
-    if (currentListItem) {
-      currentListItem.classList.remove('highlight');
-    }
-    var playlistItems = document.querySelectorAll('.playlist-item');
-    playlistItems.forEach(function(item) {
-      if (item.textContent === src) {
-        item.classList.add('highlight');
-        item.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
-      }
-    });
   }
 
   function toggleRepeat() {
