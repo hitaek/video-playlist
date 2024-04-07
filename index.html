@@ -124,14 +124,14 @@
       <source src="" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-    <div class="nav-buttons">
-      <button onclick="playPrevious()">Previous</button>
-      <button onclick="playNext()">Next</button>
-    </div>
   </div>
 
   <div class="playlist-container">
     <h2 style="padding: 10px 0; margin: 0; border-bottom: 1px solid #ccc;">Playlist</h2>
+    <div class="nav-buttons">
+      <button onclick="playPrevious()">Previous</button>
+      <button onclick="playNext()">Next</button>
+    </div>
     <input type="text" id="filterInput" onkeyup="filterPlaylist()" placeholder="Filter playlist..." class="playlist-input">
     <div class="playlist-controls" style="padding: 10px 0;">
       <button id="repeat" onclick="toggleRepeat()">Repeat: OFF</button>
