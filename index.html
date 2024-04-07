@@ -173,18 +173,9 @@
 
   function createPlaylist() {
     var videoInput = document.getElementById('videoInput').value.trim();
-    
-    if (currentPlaylist.length > 0) {
-      var response = prompt("There are items in the playlist. Do you want to clear the existing playlist and add the new items (Type 'clear') or append the new items to the existing playlist (Type 'append')?");
-      if (response === 'clear') {
-        playlist.innerHTML = ''; // Clear previous playlist
-        currentPlaylist = [];
-      } else if (response !== 'append') {
-        alert("Invalid option. Please type 'clear' or 'append'.");
-        return;
-      }
-    }
-    
+    var clearPlaylist = confirm("Do you want to clear the existing playlist?");
+    if (clearPlaylist) playlist.innerHTML = '';
+
     var lines = videoInput.split(/\r?\n/);
     lines.forEach(function(line) {
       var parts = line.split(',');
