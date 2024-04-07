@@ -155,6 +155,8 @@
     <li>Space: Play/Pause</li>
     <li>Left Arrow: Previous Video</li>
     <li>Right Arrow: Next Video</li>
+    <li>Arrow Up: Skip Forward 10 Seconds</li>
+    <li>Arrow Down: Skip Back 10 Seconds</li>
     <li>R: Toggle Repeat</li>
     <li>S: Toggle Shuffle</li>
   </ul>
@@ -173,8 +175,14 @@
 
   function createPlaylist() {
     var videoInput = document.getElementById('videoInput').value.trim();
-    var clearPlaylist = confirm("Do you want to clear the existing playlist?");
-    if (clearPlaylist) playlist.innerHTML = '';
+    var clearPlaylist = true;
+    if (currentPlaylist.length > 0) {
+      clearPlaylist = confirm('Would you like to clear the current playlist?');
+    }
+    if (clearPlaylist) {
+      playlist.innerHTML = ''; // Clear previous playlist
+      currentPlaylist = [];
+    }
 
     var lines = videoInput.split(/\r?\n/);
     lines.forEach(function(line) {
@@ -305,6 +313,12 @@
         break;
       case 'ArrowRight':
         playNext();
+        break;
+      case 'ArrowUp': // Skip forward 10 seconds
+        player.currentTime += 10;
+        break;
+      case 'ArrowDown': // Skip back 10 seconds
+        player.currentTime -= 10;
         break;
       case 'r':
       case 'R':
