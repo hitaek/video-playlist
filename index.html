@@ -143,8 +143,8 @@
 <div class="input-container">
   <textarea id="videoInput" class="playlist-input" placeholder="Enter video URLs and titles in CSV format"></textarea>
   <div class="button-container">
-    <button onclick="handlePlaylistAction('create')">Create Playlist</button>
-    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="handlePlaylistAction('upload')">
+    <button onclick="createOrUpdatePlaylist('create')">Create Playlist</button>
+    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="createOrUpdatePlaylist('upload')">
     <label for="fileInput" class="upload-btn">Upload Local M3U/M3U8</label>
   </div>
 </div>
@@ -155,8 +155,8 @@
     <li>Space: Play/Pause</li>
     <li>Left Arrow: Previous Video</li>
     <li>Right Arrow: Next Video</li>
-    <li>Up Arrow: Skip Forward 10 Seconds</li>
-    <li>Down Arrow: Skip Back 10 Seconds</li>
+    <li>Arrow Up: Skip forward 10 seconds</li>
+    <li>Arrow Down: Skip back 10 seconds</li>
     <li>R: Toggle Repeat</li>
     <li>S: Toggle Shuffle</li>
   </ul>
@@ -173,17 +173,54 @@
   var repeatState = false;
   var shuffleState = false;
 
-  function handlePlaylistAction(action) {
+  function createOrUpdatePlaylist(action) {
+    var videoInput = document.getElementById('videoInput').value.trim();
     var fileInput = document.getElementById('fileInput');
-    var file = fileInput.files[0];
+    
+    if (currentPlaylist.length > 0) {
+      var confirmMessage = "There are items in the playlist. Would you like to clear the list or append to it?";
+      var response = confirm(confirmMessage);
+      if (response) {
+        playlist.innerHTML = '';
+        currentPlaylist = [];
+      }
+    }
+
+    if (action === 'create') {
+      createPlaylist(videoInput);
+    } else if (action === 'upload' && fileInput.files.length > 0) {
+      uploadAndParse(fileInput.files[0]);
+    }
+  }
+
+  function createPlaylist(videoInput) {
+    var lines = videoInput.split(/\r?\n/);
+    lines.forEach(function(line) {
+      var parts = line.split(',');
+      if (parts.length >= 2) {
+        var url = parts[0].trim();
+        var title = parts.slice(1).join(',').trim();
+        var listItem = document.createElement('li');
+        listItem.textContent = title;
+        listItem.classList.add('playlist-item');
+        listItem.onclick = function() {
+          playVideo(url);
+        };
+        playlist.appendChild(listItem);
+        currentPlaylist.push({ url: url, title: title });
+      }
+    });
+
+    if (currentPlaylist.length > 0) {
+      currentVideoIndex = 0;
+      playVideo(currentPlaylist[currentVideoIndex].url);
+    }
+  }
+
+  function uploadAndParse(file) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var lines = e.target.result.split(/\r?\n/);
-      var clearPlaylist = false;
-      if (currentPlaylist.length > 0) {
-        var response = confirm("There are items in the playlist. Do you want to clear the playlist?");
-        clearPlaylist = response ? true : false;
-      }
       lines.forEach(function(line) {
         if (line.startsWith('#EXTINF')) {
           var url = lines[lines.indexOf(line) + 1];
@@ -195,20 +232,11 @@
             listItem.onclick = function() {
               playVideo(url);
             };
-            if (clearPlaylist) {
-              playlist.innerHTML = '';
-              currentPlaylist = [];
-              clearPlaylist = false;
-            }
             playlist.appendChild(listItem);
             currentPlaylist.push({ url: url, title: title });
           }
         }
       });
-      if (currentPlaylist.length > 0 && action === 'upload') {
-        currentVideoIndex = 0;
-        playVideo(currentPlaylist[currentVideoIndex].url);
-      }
     };
     reader.readAsText(file);
   }
@@ -306,6 +334,43 @@
         break;
     }
   });
+
+  // Automatically load playlist from "MisterRogers-MP4.m3u8" file
+  window.onload = function() {
+    var file = "MisterRogers-MP4.m3u8";
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState == XMLHttpRequest.DONE) {
+        if (xhr.status == 200) {
+          var lines = xhr.responseText.split(/\r?\n/);
+          lines.forEach(function(line) {
+            if (line.startsWith('#EXTINF')) {
+              var url = lines[lines.indexOf(line) + 1];
+              if (url && url.trim() !== '') {
+                var title = line.split(',')[1];
+                var listItem = document.createElement('li');
+                listItem.textContent = title;
+                listItem.classList.add('playlist-item');
+                listItem.onclick = function() {
+                  playVideo(url);
+                };
+                playlist.appendChild(listItem);
+                currentPlaylist.push({ url: url, title: title });
+              }
+            }
+          });
+          if (currentPlaylist.length > 0) {
+            currentVideoIndex = 0;
+            playVideo(currentPlaylist[currentVideoIndex].url);
+          }
+        } else {
+          console.error("Failed to load playlist.");
+        }
+      }
+    };
+    xhr.open("GET", file, true);
+    xhr.send();
+  };
 </script>
 
 </body>
