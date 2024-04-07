@@ -48,7 +48,7 @@
       margin-top: 20px;
     }
     .playlist-input {
-      width: calc(100% - 20px);
+      width: 100%;
       padding: 10px;
       border-radius: 4px;
       border: 1px solid #ccc;
@@ -68,8 +68,8 @@
       padding: 10px;
       display: inline-block;
       margin-left: 5px;
-      width: calc(50% - 5px); /* Each button takes half the width with 5px spacing */
-      font-size: 16px; /* Set font size for buttons */
+      width: calc(50% - 5px);
+      font-size: 16px;
     }
     button:hover, .upload-btn:hover {
       background-color: #ddd;
@@ -96,7 +96,7 @@
       width: 100%;
       display: flex;
       flex-direction: row;
-      justify-content: space-between; /* Buttons are evenly spaced */
+      justify-content: space-between;
     }
 
     @media only screen and (min-width: 768px) {
@@ -107,13 +107,13 @@
         grid-column: span 2;
       }
       .playlist-input {
-        width: calc(100% - 20px); /* Adjust width as per requirement */
+        width: 100%;
       }
       .button-container {
         flex-direction: row;
       }
       button, .upload-btn {
-        width: auto; /* Buttons take content width */
+        width: auto;
       }
     }
   </style>
@@ -134,10 +134,10 @@
 
   <div class="playlist-container">
     <h2 style="padding: 10px 0; margin: 0; border-bottom: 1px solid #ccc;">Playlist</h2>
+    <input type="text" id="filterInput" onkeyup="filterPlaylist()" placeholder="Filter playlist..." class="playlist-input">
     <div class="playlist-controls" style="padding: 10px 0;">
       <button id="repeat" onclick="toggleRepeat()">Repeat: OFF</button>
       <button id="shuffle" onclick="toggleShuffle()">Shuffle: OFF</button>
-      <input type="text" id="filterInput" onkeyup="filterPlaylist()" placeholder="Filter playlist...">
     </div>
     <ul class="playlist" id="playlist">
       <!-- Playlist items will be dynamically added here -->
@@ -265,9 +265,9 @@
     currentVideoIndex++;
     if (currentVideoIndex >= currentPlaylist.length) {
       if (repeatState) {
-        currentVideoIndex = 0; // Restart playlist
+        currentVideoIndex = 0;
       } else {
-        return; // Do nothing if not repeating
+        return;
       }
     }
     playVideo(currentPlaylist[currentVideoIndex].url);
@@ -276,7 +276,7 @@
   function playPrevious() {
     currentVideoIndex--;
     if (currentVideoIndex < 0) {
-      currentVideoIndex = currentPlaylist.length - 1; // Go to last video
+      currentVideoIndex = currentPlaylist.length - 1;
     }
     playVideo(currentPlaylist[currentVideoIndex].url);
   }
