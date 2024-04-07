@@ -111,6 +111,10 @@
         grid-template-columns: repeat(2, auto);
       }
     }
+    .highlight {
+      background-color: #007bff;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -143,13 +147,8 @@
 <div class="input-container">
   <textarea id="videoInput" class="playlist-input" placeholder="Enter video URLs and titles in CSV format"></textarea>
   <div class="button-container">
-<<<<<<< HEAD
-    <button onclick="createPlaylist()">Create Playlist</button>
-    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="uploadAndParse()">
-=======
-    <button onclick="handlePlaylistUpload()">Create Playlist</button>
-    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="handlePlaylistUpload()">
->>>>>>> parent of 7096cf9 (Update index.html)
+    <button onclick="handlePlaylistInput('create')">Create Playlist</button>
+    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="handlePlaylistInput('upload')">
     <label for="fileInput" class="upload-btn">Upload Local M3U/M3U8</label>
   </div>
 </div>
@@ -160,13 +159,8 @@
     <li>Space: Play/Pause</li>
     <li>Left Arrow: Previous Video</li>
     <li>Right Arrow: Next Video</li>
-<<<<<<< HEAD
-    <li>Up Arrow: Skip Forward 10 seconds</li>
-    <li>Down Arrow: Skip Backward 10 seconds</li>
-=======
-    <li>Up Arrow: Skip Forward 10 Seconds</li>
-    <li>Down Arrow: Skip Back 10 Seconds</li>
->>>>>>> parent of 7096cf9 (Update index.html)
+    <li>Up Arrow: Skip Ahead 10 seconds</li>
+    <li>Down Arrow: Skip Back 10 seconds</li>
     <li>R: Toggle Repeat</li>
     <li>S: Toggle Shuffle</li>
   </ul>
@@ -182,21 +176,10 @@
   var currentVideoIndex = 0;
   var repeatState = false;
   var shuffleState = false;
-  var playingItem = null;
 
-<<<<<<< HEAD
-  function createPlaylist(data) {
-    var shouldClear = currentPlaylist.length > 0 && confirm("There are items in the playlist. Do you want to clear the list?");
-    if (shouldClear) {
-      currentPlaylist = [];
-      playlist.innerHTML = '';
-    }
-    data.forEach(function(item) {
-=======
   function createPlaylist(playlistData) {
-    playlist.innerHTML = ''; // Clear previous playlist
+    clearPlaylist();
     playlistData.forEach(function(item) {
->>>>>>> parent of 7096cf9 (Update index.html)
       var listItem = document.createElement('li');
       listItem.textContent = item.title;
       listItem.classList.add('playlist-item');
@@ -204,16 +187,20 @@
         playVideo(item.url);
       };
       playlist.appendChild(listItem);
-      currentPlaylist.push({ url: item.url, title: item.title });
+      currentPlaylist.push(item);
     });
-<<<<<<< HEAD
-    if (!shouldClear && currentPlaylist.length > 0) {
-      currentVideoIndex = currentPlaylist.length - 1;
-      playNext();
+    if (currentPlaylist.length > 0) {
+      currentVideoIndex = 0;
+      playVideo(currentPlaylist[currentVideoIndex].url);
     }
   }
 
-  function uploadAndParse() {
+  function clearPlaylist() {
+    playlist.innerHTML = '';
+    currentPlaylist = [];
+  }
+
+  function handlePlaylistInput(action) {
     var fileInput = document.getElementById('fileInput');
     if (fileInput.files.length > 0) {
       var file = fileInput.files[0];
@@ -230,79 +217,47 @@
             }
           }
         });
-        createPlaylist(playlistData);
+        if (action === 'create') {
+          createPlaylist(playlistData);
+        } else if (action === 'upload') {
+          var confirmMsg = currentPlaylist.length > 0 ? 'Would you like to clear the playlist or append?' : 'The playlist will be replaced with the new items. Continue?';
+          var response = confirm(confirmMsg);
+          if (response) {
+            createPlaylist(playlistData);
+          } else {
+            playlistData.forEach(function(item) {
+              var listItem = document.createElement('li');
+              listItem.textContent = item.title;
+              listItem.classList.add('playlist-item');
+              listItem.onclick = function() {
+                playVideo(item.url);
+              };
+              playlist.appendChild(listItem);
+              currentPlaylist.push(item);
+            });
+          }
+        }
       };
       reader.readAsText(file);
     } else {
       alert('Please select a file to upload.');
     }
-=======
-
-    if (currentPlaylist.length > 0) {
-      currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url);
-    }
-  }
-
-  function handlePlaylistUpload() {
-    var fileInput = document.getElementById('fileInput');
-    var file = fileInput.files[0];
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var lines = e.target.result.split(/\r?\n/);
-      var playlistData = [];
-      lines.forEach(function(line) {
-        if (line.startsWith('#EXTINF')) {
-          var url = lines[lines.indexOf(line) + 1];
-          if (url && url.trim() !== '') {
-            var title = line.split(',')[1];
-            playlistData.push({ url: url, title: title });
-          }
-        }
-      });
-      if (currentPlaylist.length > 0) {
-        var choice = confirm("There are items in the playlist. Do you want to clear the playlist?");
-        if (choice) {
-          createPlaylist(playlistData);
-        } else {
-          playlistData.forEach(function(item) {
-            currentPlaylist.push({ url: item.url, title: item.title });
-          });
-        }
-      } else {
-        createPlaylist(playlistData);
-      }
-    };
-    reader.readAsText(file);
->>>>>>> parent of 7096cf9 (Update index.html)
   }
 
   function playVideo(src) {
-    if (playingItem) {
-      playingItem.classList.remove('playing');
-    }
-    var playlistItems = playlist.getElementsByClassName('playlist-item');
-    for (var i = 0; i < playlistItems.length; i++) {
-      if (playlistItems[i].textContent === src) {
-        playingItem = playlistItems[i];
-        playingItem.classList.add('playing');
-        break;
-      }
-    }
     player.src = src;
     player.play();
-<<<<<<< HEAD
-=======
-    var currentListItem = playlist.querySelector('.highlight');
+    var currentListItem = document.querySelector('.playlist-item.highlight');
     if (currentListItem) {
       currentListItem.classList.remove('highlight');
     }
-    var listItem = playlist.querySelector('li[data-url="' + src + '"]');
-    if (listItem) {
-      listItem.classList.add('highlight');
-      listItem.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
-    }
->>>>>>> parent of 7096cf9 (Update index.html)
+    var playlistItems = document.querySelectorAll('.playlist-item');
+    playlistItems.forEach(function(item) {
+      if (item.textContent === src) {
+        item.classList.add('highlight');
+        item.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+      }
+    });
   }
 
   function toggleRepeat() {
