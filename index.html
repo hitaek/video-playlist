@@ -44,6 +44,10 @@
     .playlist-item:hover {
       background-color: #e0e0e0;
     }
+    .playlist-item.active {
+      background-color: #007bff;
+      color: #fff;
+    }
     .input-container {
       margin-top: 20px;
     }
@@ -143,8 +147,8 @@
 <div class="input-container">
   <textarea id="videoInput" class="playlist-input" placeholder="Enter video URLs and titles in CSV format"></textarea>
   <div class="button-container">
-    <button onclick="createOrUpdatePlaylist('create')">Create Playlist</button>
-    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="createOrUpdatePlaylist('upload')">
+    <button onclick="createOrUpdatePlaylist()">Create Playlist</button>
+    <input type="file" id="fileInput" accept=".m3u, .m3u8" onchange="createOrUpdatePlaylist()">
     <label for="fileInput" class="upload-btn">Upload Local M3U/M3U8</label>
   </div>
 </div>
@@ -155,8 +159,8 @@
     <li>Space: Play/Pause</li>
     <li>Left Arrow: Previous Video</li>
     <li>Right Arrow: Next Video</li>
-    <li>Arrow Up: Skip forward 10 seconds</li>
-    <li>Arrow Down: Skip back 10 seconds</li>
+    <li>Up Arrow: Skip Forward 10 seconds</li>
+    <li>Down Arrow: Skip Back 10 seconds</li>
     <li>R: Toggle Repeat</li>
     <li>S: Toggle Shuffle</li>
   </ul>
@@ -173,54 +177,21 @@
   var repeatState = false;
   var shuffleState = false;
 
-  function createOrUpdatePlaylist(action) {
-    var videoInput = document.getElementById('videoInput').value.trim();
+  function createOrUpdatePlaylist() {
     var fileInput = document.getElementById('fileInput');
-    
-    if (currentPlaylist.length > 0) {
-      var confirmMessage = "There are items in the playlist. Would you like to clear the list or append to it?";
-      var response = confirm(confirmMessage);
-      if (response) {
-        playlist.innerHTML = '';
-        currentPlaylist = [];
-      }
-    }
-
-    if (action === 'create') {
-      createPlaylist(videoInput);
-    } else if (action === 'upload' && fileInput.files.length > 0) {
-      uploadAndParse(fileInput.files[0]);
-    }
-  }
-
-  function createPlaylist(videoInput) {
-    var lines = videoInput.split(/\r?\n/);
-    lines.forEach(function(line) {
-      var parts = line.split(',');
-      if (parts.length >= 2) {
-        var url = parts[0].trim();
-        var title = parts.slice(1).join(',').trim();
-        var listItem = document.createElement('li');
-        listItem.textContent = title;
-        listItem.classList.add('playlist-item');
-        listItem.onclick = function() {
-          playVideo(url);
-        };
-        playlist.appendChild(listItem);
-        currentPlaylist.push({ url: url, title: title });
-      }
-    });
-
-    if (currentPlaylist.length > 0) {
-      currentVideoIndex = 0;
-      playVideo(currentPlaylist[currentVideoIndex].url);
-    }
-  }
-
-  function uploadAndParse(file) {
+    var file = fileInput.files[0];
     var reader = new FileReader();
     reader.onload = function(e) {
       var lines = e.target.result.split(/\r?\n/);
+      var append = true;
+      if (currentPlaylist.length > 0) {
+        var choice = confirm("There are items in the playlist. Do you want to clear the playlist?");
+        if (choice) {
+          clearPlaylist();
+        } else {
+          append = true;
+        }
+      }
       lines.forEach(function(line) {
         if (line.startsWith('#EXTINF')) {
           var url = lines[lines.indexOf(line) + 1];
@@ -234,6 +205,9 @@
             };
             playlist.appendChild(listItem);
             currentPlaylist.push({ url: url, title: title });
+            if (append && currentPlaylist.length === 1) {
+              playVideo(url);
+            }
           }
         }
       });
@@ -241,9 +215,23 @@
     reader.readAsText(file);
   }
 
+  function clearPlaylist() {
+    playlist.innerHTML = '';
+    currentPlaylist = [];
+    currentVideoIndex = 0;
+    player.src = '';
+  }
+
   function playVideo(src) {
     player.src = src;
     player.play();
+    var currentItem = playlist.querySelector('.playlist-item.active');
+    if (currentItem) {
+      currentItem.classList.remove('active');
+    }
+    var newItem = playlist.querySelector('li:nth-child(' + (currentVideoIndex + 1) + ')');
+    newItem.classList.add('active');
+    newItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function toggleRepeat() {
@@ -259,13 +247,6 @@
       shuffleArray(currentPlaylist);
       currentVideoIndex = 0;
       playVideo(currentPlaylist[currentVideoIndex].url);
-    }
-  }
-
-  function shuffleArray(array) {
-    for (var i = array.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
     }
   }
 
@@ -335,42 +316,12 @@
     }
   });
 
-  // Automatically load playlist from "MisterRogers-MP4.m3u8" file
-  window.onload = function() {
-    var file = "MisterRogers-MP4.m3u8";
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == XMLHttpRequest.DONE) {
-        if (xhr.status == 200) {
-          var lines = xhr.responseText.split(/\r?\n/);
-          lines.forEach(function(line) {
-            if (line.startsWith('#EXTINF')) {
-              var url = lines[lines.indexOf(line) + 1];
-              if (url && url.trim() !== '') {
-                var title = line.split(',')[1];
-                var listItem = document.createElement('li');
-                listItem.textContent = title;
-                listItem.classList.add('playlist-item');
-                listItem.onclick = function() {
-                  playVideo(url);
-                };
-                playlist.appendChild(listItem);
-                currentPlaylist.push({ url: url, title: title });
-              }
-            }
-          });
-          if (currentPlaylist.length > 0) {
-            currentVideoIndex = 0;
-            playVideo(currentPlaylist[currentVideoIndex].url);
-          }
-        } else {
-          console.error("Failed to load playlist.");
-        }
-      }
-    };
-    xhr.open("GET", file, true);
-    xhr.send();
-  };
+  function shuffleArray(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
 </script>
 
 </body>
