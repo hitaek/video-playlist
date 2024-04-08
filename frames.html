@@ -17,10 +17,10 @@
         overflow: hidden;
         float: left;
     }
-    .frame iframe {
+    .frameContent {
         width: 100%;
-        height: 100%;
-        border: none;
+        height: calc(100% - 40px);
+        overflow-y: auto;
     }
     #addFrameBtn {
         position: fixed;
@@ -45,22 +45,22 @@
         <input type="text" class="urlInput" placeholder="Enter URL">
         <br>
         <div class="frameContent"></div>
-        <button class="closeBtn" onclick="closeFrame(this.parentNode)">Close</button>
+        <button class="closeBtn">Close</button>
     </div>
     <div class="frame" id="frame2">
         <input type="text" class="urlInput" placeholder="Enter URL">
         <br>
         <div class="frameContent"></div>
-        <button class="closeBtn" onclick="closeFrame(this.parentNode)">Close</button>
+        <button class="closeBtn">Close</button>
     </div>
     <div class="frame" id="frame3">
         <input type="text" class="urlInput" placeholder="Enter URL">
         <br>
         <div class="frameContent"></div>
-        <button class="closeBtn" onclick="closeFrame(this.parentNode)">Close</button>
+        <button class="closeBtn">Close</button>
     </div>
 </div>
-<div id="addFrameBtn" onclick="addFrame()">+</div>
+<div id="addFrameBtn">+</div>
 
 <script>
     async function loadURL(input) {
@@ -90,6 +90,14 @@
         });
     });
 
+    document.querySelectorAll('.closeBtn').forEach(button => {
+        button.addEventListener('click', function() {
+            const frame = this.parentNode;
+            frame.parentNode.removeChild(frame);
+            updateFrameWidths();
+        });
+    });
+
     function addFrame() {
         const container = document.getElementById('container');
         const frameCount = container.querySelectorAll('.frame').length;
@@ -100,18 +108,13 @@
                 <input type="text" class="urlInput" placeholder="Enter URL">
                 <br>
                 <div class="frameContent"></div>
-                <button class="closeBtn" onclick="closeFrame(this.parentNode)">Close</button>
+                <button class="closeBtn">Close</button>
             `;
             container.appendChild(newFrame);
             updateFrameWidths();
         } else {
             alert('Maximum number of frames reached!');
         }
-    }
-
-    function closeFrame(frame) {
-        frame.parentNode.removeChild(frame);
-        updateFrameWidths();
     }
 
     function updateFrameWidths() {
@@ -135,7 +138,23 @@
 
     function loadURLs() {
         const urlListInput = document.getElementById('urlListInput');
-        const urls = urlListInput.value.split(',').slice(0, 9); // Take up to 9 URLs const frames = document.querySelectorAll('.frame'); urls.forEach((url, index) => { if (index < frames.length) { const frameContent = frames[index].querySelector('.frameContent'); if (!url.startsWith('http://') && !url.startsWith('https://')) { url = 'https://' + url; } loadURLIntoFrame(url, frameContent); } else { addFrame(); const newFrame = document.querySelectorAll('.frame')[index]; const frameContent = newFrame.querySelector('.frameContent'); if (!url.startsWith('http://') && !url.startsWith('https://')) { url = 'https://' + url; } loadURLIntoFrame(url, frameContent); } }); // Clear remaining frames if fewer than 9 URLs were provided for (let i = urls.length; i < frames.length; i++) { frames[i].querySelector('.frameContent').innerHTML = ''; } updateFrameWidths(); // Adjust frame widths after loading URLs }async function loadURLIntoFrame(url, frameContent) {
+        const urls = urlListInput.value.split(',').slice(0, 9); // Take up to 9 URLs
+        const frames = document.querySelectorAll('.frame');
+        urls.forEach((url, index) => {
+            if (index < frames.length) {
+                const frameContent = frames[index].querySelector('.frameContent');
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+                loadURLIntoFrame(url, frameContent);
+            } else {
+                addFrame();
+                const newFrame = document.querySelectorAll('.frame')[index];
+                const frameContent = newFrame.querySelector('.frameContent');
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+                loadURLIntoFrame(url, frameContent); } }); // Clear remaining frames if fewer than 9 URLs were provided for (let i = urls.length; i < frames.length; i++) { frames[i].querySelector('.frameContent').innerHTML = ''; } updateFrameWidths(); // Adjust frame widths after loading URLs }async function loadURLIntoFrame(url, frameContent) {
     try {
         const response = await fetch('https://cors-anywhere.herokuapp.com/' + url);
         const content = await response.text();
