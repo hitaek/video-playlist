@@ -12,17 +12,16 @@
         overflow: hidden;
     }
     .frame {
-        width: calc(100% / 3);
         box-sizing: border-box;
         border: 1px solid #ccc;
         overflow: hidden;
         float: left;
-        height: 100vh;
     }
     .frame iframe {
         width: 100%;
         height: 100%;
         border: none;
+        transform-origin: 0 0;
     }
     #addFrameBtn {
         position: fixed;
@@ -31,63 +30,75 @@
         font-size: 24px;
         cursor: pointer;
     }
+    #urlListInput {
+        width: calc(100% - 40px);
+        padding: 5px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        margin: 20px;
+    }
 </style>
 </head>
 <body>
+<input type="text" id="urlListInput" placeholder="Enter up to 9 URLs separated by commas">
 <div id="container">
-    <div class="frame">
-        <input type="text" class="urlInput" placeholder="Enter URL">
-        <br>
-        <iframe class="frameContent" src="" frameborder="0"></iframe>
-    </div>
-    <div class="frame">
-        <input type="text" class="urlInput" placeholder="Enter URL">
-        <br>
-        <iframe class="frameContent" src="" frameborder="0"></iframe>
-    </div>
-    <div class="frame">
-        <input type="text" class="urlInput" placeholder="Enter URL">
-        <br>
-        <iframe class="frameContent" src="" frameborder="0"></iframe>
-    </div>
 </div>
 <div id="addFrameBtn" onclick="addFrame()">+</div>
 
 <script>
-    function loadURL(input) {
-        const frame = input.parentNode.querySelector('.frameContent');
-        let url = input.value;
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
+    function loadURLs() {
+        const urlListInput = document.getElementById('urlListInput');
+        const urls = urlListInput.value.split(',').slice(0, 9); // Take up to 9 URLs
+        const frames = document.querySelectorAll('.frame');
+        urls.forEach((url, index) => {
+            const frameContent = frames[index].querySelector('.frameContent');
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            frameContent.src = url.trim();
+        });
+        // Clear remaining frames if fewer than 9 URLs were provided
+        for (let i = urls.length; i < frames.length; i++) {
+            frames[i].querySelector('.frameContent').src = '';
         }
-        frame.src = url;
     }
 
     function addFrame() {
         const container = document.getElementById('container');
-        const frameCount = document.querySelectorAll('.frame').length;
-        if (frameCount < 6) { // Maximum 3 rows
+        const frameCount = container.querySelectorAll('.frame').length;
+        if (frameCount < 9) { // Maximum 9 frames
             const newFrame = document.createElement('div');
             newFrame.classList.add('frame');
             newFrame.innerHTML = `
-                <input type="text" class="urlInput" placeholder="Enter URL">
-                <br>
                 <iframe class="frameContent" src="" frameborder="0"></iframe>
             `;
             container.appendChild(newFrame);
-            const newInput = newFrame.querySelector('.urlInput');
-            newInput.addEventListener('blur', function() {
-                loadURL(this);
-            });
-            newInput.addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    loadURL(this);
-                }
-            });
+            updateFrameWidths();
         } else {
             alert('Maximum number of frames reached!');
         }
     }
+
+    function updateFrameWidths() {
+        const frames = document.querySelectorAll('.frame');
+        const frameCount = frames.length;
+        const containerWidth = document.getElementById('container').offsetWidth;
+        const frameWidth = containerWidth / Math.ceil(Math.sqrt(frameCount));
+        frames.forEach(frame => {
+            frame.style.width = frameWidth + 'px';
+            const frameContent = frame.querySelector('.frameContent');
+            frameContent.style.transform = `scale(${frameWidth / containerWidth})`;
+        });
+    }
+
+    window.addEventListener('resize', updateFrameWidths);
+    updateFrameWidths();
+
+    document.getElementById('urlListInput').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            loadURLs();
+        }
+    });
 </script>
 </body>
 </html>
